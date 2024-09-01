@@ -1,3 +1,15 @@
 spring:
   application:
     name: ticketgo-back-end
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/booking_system?useSSL=false&useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: PhuongTay110903@
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: update
