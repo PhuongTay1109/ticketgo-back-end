@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,7 +21,7 @@ public class Booking {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,6 +30,24 @@ public class Booking {
 
     @Column(name = "booking_time")
     private Timestamp bookingTime;
+
+    @Column(name = "anonymous_name")
+    private String anonymousName;
+
+    @Column(name = "anonymous_email")
+    private String anonymousEmail;
+
+    @Column(name = "anonymous_address")
+    private String anonymousAddress;
+
+    @Column(name = "anonymous_date_of_birth")
+    private LocalDate anonymousDateOfBirth;
+
+    @Column(name = "anonymous_phone")
+    private String anonymousPhone;
+
+    @Column(name = "anonymous_identity_no")
+    private String anonymousIdentityNo;
 
     @ManyToMany
     @JoinTable(
