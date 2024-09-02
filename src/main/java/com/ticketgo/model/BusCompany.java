@@ -22,9 +22,9 @@ public class BusCompany {
     @Column(nullable = false)
     private String address;
 
-    @Column()
+    @Column(nullable = false)
     private String description;
 
-    @Column(name = "business_license", nullable = false, length = 13)
+    @Column(name = "business_license", nullable = false, length = 13, unique = true)
     private String businessLicense;
 }
