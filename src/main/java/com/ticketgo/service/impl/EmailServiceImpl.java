@@ -42,7 +42,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(content, true);
 
         } catch (MessagingException | UnsupportedEncodingException e) {
-            throw new AppException("Email", "Failed to send email", "Server error", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new AppException("Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         javaMailSender.send(message);

@@ -39,14 +39,14 @@ public class AuthServiceImpl implements AuthService {
         String password = request.getPassword();
 
         Account account = accountRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException("account", "Invalid username or password", "Login failed", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new AppException("Invalid username or password", HttpStatus.UNAUTHORIZED));
 
         if(!passwordEncoder.matches(password, account.getPassword())) {
-            throw new AppException("account", "Invalid username or password", "Login failed", HttpStatus.UNAUTHORIZED);
+            throw new AppException("Invalid username or password", HttpStatus.UNAUTHORIZED);
         }
 
         if(!account.isEnabled()) {
-            throw new AppException("account", "Your account haven't activated", "Login failed", HttpStatus.UNAUTHORIZED);
+            throw new AppException( "Your account haven't activated", HttpStatus.UNAUTHORIZED);
         }
 
         return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
@@ -123,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void generateAndSendVerificationToken(String email) {
         Account account = accountRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException("account", "Account not found", "Fail to send verification email", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Account not found", HttpStatus.NOT_FOUND));
 
         String token = UUID.randomUUID().toString();
         EmailVerificationToken verificationToken = new EmailVerificationToken(token, account);
@@ -135,7 +135,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void verifyEmail(String token) {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new AppException("token", "Token not found", "Fail to verify email", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Token not found", HttpStatus.NOT_FOUND));
 
         if (verificationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             // Token expired, create and send a new token
@@ -147,7 +147,7 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendVerificationEmail(account.getEmail(), newToken);
             emailVerificationTokenRepository.delete(verificationToken);
 
-            throw new AppException("token", "Token expired. A new verification email has been sent.", "Fail to verify email", HttpStatus.GONE);
+            throw new AppException("Token expired. A new verification email has been sent.", HttpStatus.GONE);
         }
 
         // Token is valid, enable the account
@@ -160,39 +160,35 @@ public class AuthServiceImpl implements AuthService {
 
     private void validateUserRequest(UserRegistrationRequest request) {
         if (accountRepository.existsByEmail(request.getEmail())) {
-            throw createAppException("email", "Email already exists");
+            throw new AppException("Email already exists", HttpStatus.BAD_REQUEST);
         }
 
         if (accountRepository.existsByPhone(request.getPhone())) {
-            throw createAppException("phone", "Phone number already exists");
+            throw new AppException("Phone number already exists", HttpStatus.BAD_REQUEST);
         }
 
         if (userRepository.existsByIdentityNo(request.getIdentityNo())) {
-            throw createAppException("identityNo", "Identity number already exists");
+            throw new AppException("Identity number already exists", HttpStatus.BAD_REQUEST);
         }
     }
 
     private void validateCompanyRequest(BusCompanyRegistrationRequest request) {
         if (accountRepository.existsByEmail(request.getEmail())) {
-            throw createAppException("email", "Email already exists");
+            throw new AppException("Email already exists", HttpStatus.BAD_REQUEST);
         }
 
         if (accountRepository.existsByPhone(request.getPhone())) {
-            throw createAppException("phone", "Phone number already exists");
+            throw new AppException("Phone number already exists", HttpStatus.BAD_REQUEST);
         }
 
         if (busCompanyRepository.existsByBusinessLicense(request.getBusinessLicense())) {
-            throw createAppException("businessLicense", "Business license already exists");
+            throw new AppException("Business license already exists", HttpStatus.BAD_REQUEST);
         }
     }
 
     private Role getRoleByName(String roleName) {
         return roleRepository.findByRoleName(roleName)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
-    }
-
-    private AppException createAppException(String field, String message) {
-        return new AppException(field, message, "Registration failed", HttpStatus.BAD_REQUEST);
     }
 
     private Date convertToDate(String dateString) {

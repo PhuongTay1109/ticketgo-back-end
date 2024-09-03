@@ -56,9 +56,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse> handleUserRegistrationException(AppException ex) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put(ex.getField(), ex.getMessage());
-        return ApiResponseUtil.createErrorResponse(ex.getErrorMessage(), errors, ex.getStatus());
+        return ApiResponseUtil.createErrorResponse(ex.getMessage(), null, ex.getHttpStatus());
     }
 
     @ExceptionHandler(RuntimeException.class)
