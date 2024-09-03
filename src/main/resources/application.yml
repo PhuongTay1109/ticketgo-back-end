@@ -3,7 +3,7 @@ spring:
     name: ticketgo-back-end
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/booking_system?useSSL=false&useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3306/ticket_go?useSSL=false&useUnicode=true&characterEncoding=UTF-8
     username: root
     password: PhuongTay110903@
   jpa:
@@ -18,5 +18,11 @@ spring:
 email:
   username: phuongtay713@gmail.com
   password: mlfoeesojdrbhbez
+
+# Frontend
+frontend:
+  url: http://localhost:3000
+
+# Jwt secret
 jwt:
   secret: 843567893696976453275974432697R634976R738467TR678T34865R6834R8763T478378637664538745673865783678548735687R3

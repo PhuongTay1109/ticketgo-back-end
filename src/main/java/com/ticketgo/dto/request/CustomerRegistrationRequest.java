@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class BusCompanyRegistrationRequest {
+public class CustomerRegistrationRequest {
 
     @NotBlank(message = "Mật khẩu là bắt buộc")
     @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
@@ -17,22 +17,21 @@ public class BusCompanyRegistrationRequest {
     @Email(message = "Email không đúng định dạng")
     private String email;
 
-    @NotBlank(message = "Tên công ty là bắt buộc")
-    @Size(max = 100, message = "Tên công ty không được vượt quá 100 ký tự")
-    private String companyName;
+    @NotBlank(message = "Họ và tên là bắt buộc")
+    private String fullName;
 
     @NotBlank(message = "Số điện thoại là bắt buộc")
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải có đúng 10 chữ số")
     private String phone;
 
+    @NotBlank(message = "Số căn cước công dân là bắt buộc")
+    @Pattern(regexp = "^\\d{12}$", message = "Số căn cước công dân phải có đúng 12 chữ số")
+    private String identityNo;
+
+    @NotNull(message = "Ngày sinh là bắt buộc")
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Ngày sinh phải theo định dạng YYYY-MM-DD")
+    private String dateOfBirth;
+
     @NotBlank(message = "Địa chỉ là bắt buộc")
-    @Size(max = 255, message = "Địa chỉ không được vượt quá 255 ký tự")
     private String address;
-
-    @Size(max = 500, message = "Mô tả không được vượt quá 500 ký tự")
-    private String description;
-
-    @NotBlank(message = "Giấy phép kinh doanh là bắt buộc")
-    @Size(min = 10, max = 13, message = "Giấy phép kinh doanh phải có từ 10 đến 13 ký tự")
-    private String businessLicense;
 }

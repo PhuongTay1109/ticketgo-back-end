@@ -7,7 +7,7 @@ import lombok.Setter;
 @Builder
 @Setter
 @Getter
-public class UserData {
+public class CustomerData {
     private Integer userId;
     private String email;
     private String fullName;

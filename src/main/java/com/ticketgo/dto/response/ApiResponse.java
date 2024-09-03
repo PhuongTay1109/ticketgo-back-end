@@ -15,5 +15,5 @@ public class ApiResponse {
     private int status;
     private String message;
     private Object data;
-    private Map<String, String> errors;  // Trường mới để chứa lỗi chi tiết
+    private Map<String, String> errors;
 }

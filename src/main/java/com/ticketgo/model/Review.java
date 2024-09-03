@@ -24,7 +24,7 @@ public class Review {
     @Column(name = "post_date", nullable = false)
     private LocalDate postDate;
 
-    @Column(nullable = false, length = 65535) // TEXT in MySQL
+    @Column(nullable = false)
     private String content;
 
     @Column(name = "star_rating")
@@ -35,6 +35,6 @@ public class Review {
     private BusCompany busCompany;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
 }

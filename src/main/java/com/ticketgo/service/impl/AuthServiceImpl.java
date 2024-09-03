@@ -1,18 +1,21 @@
 package com.ticketgo.service.impl;
 
-import com.ticketgo.contant.PredenfinedRole;
+import com.ticketgo.contant.PredefinedRole;
 import com.ticketgo.dto.request.BusCompanyRegistrationRequest;
 import com.ticketgo.dto.request.LoginRequest;
-import com.ticketgo.dto.request.UserRegistrationRequest;
+import com.ticketgo.dto.request.CustomerRegistrationRequest;
 import com.ticketgo.dto.response.LoginResponse;
+import com.ticketgo.dto.response.RefreshTokenResponse;
 import com.ticketgo.exception.AppException;
 import com.ticketgo.model.*;
 import com.ticketgo.repository.*;
+import com.ticketgo.service.AccountService;
 import com.ticketgo.service.AuthService;
 import com.ticketgo.service.EmailService;
 import com.ticketgo.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,13 +28,14 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService {
 
     private final AccountRepository accountRepository;
-    private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final BusCompanyRepository busCompanyRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerficationTokenRepository emailVerificationTokenRepository;
     private final EmailService emailService;
     private final JwtUtil jwtUtil;
+    private final AccountService accountService;
 
     @Override
     public LoginResponse authenticate(LoginRequest request) {
@@ -39,28 +43,41 @@ public class AuthServiceImpl implements AuthService {
         String password = request.getPassword();
 
         Account account = accountRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException("Invalid username or password", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new AppException("Tên đăng nhập hoặc mật khẩu không hợp lệ", HttpStatus.UNAUTHORIZED));
 
         if(!passwordEncoder.matches(password, account.getPassword())) {
-            throw new AppException("Invalid username or password", HttpStatus.UNAUTHORIZED);
+            throw new AppException("Tên đăng nhập hoặc mật khẩu không hợp lệ", HttpStatus.UNAUTHORIZED);
         }
 
         if(!account.isEnabled()) {
-            throw new AppException( "Your account haven't activated", HttpStatus.UNAUTHORIZED);
+            throw new AppException("Tài khoản của bạn chưa được kích hoạt. Hãy kiểm tra email để kích hoạt tài khoản.", HttpStatus.UNAUTHORIZED);
         }
 
         return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
     }
 
     @Override
-    public Integer registerNewUser(UserRegistrationRequest request) {
+    public RefreshTokenResponse refreshToken(String token) {
+        if (!jwtUtil.isTokenValid(token)) {
+            throw new AppException("Phiên đăng nhập đã hết hạn", HttpStatus.UNAUTHORIZED);
+        }
+
+        String username = jwtUtil.extractUsername(token);
+        UserDetails userDetails = accountService.loadUserByUsername(username);
+        String newAccessToken = jwtUtil.generateAccessToken(userDetails);
+
+        return new RefreshTokenResponse(newAccessToken);
+    }
+
+    @Override
+    public Integer registerNewCustomer(CustomerRegistrationRequest request) {
         validateUserRequest(request);
         Account account = createAccount(request);
-        User user = createUser(request, account);
+        Customer customer = createCustomer(request, account);
 
         generateAndSendVerificationToken(account.getEmail());
 
-        return user.getId();
+        return customer.getId();
     }
 
     @Override
@@ -74,8 +91,8 @@ public class AuthServiceImpl implements AuthService {
         return busCompany.getId();
     }
 
-    private Account createAccount(UserRegistrationRequest request) {
-        Role role = getRoleByName(PredenfinedRole.USER_ROLE);
+    private Account createAccount(CustomerRegistrationRequest request) {
+        Role role = getRoleByName(PredefinedRole.CUSTOMER_ROLE);
         Account account = Account.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -87,18 +104,18 @@ public class AuthServiceImpl implements AuthService {
         return accountRepository.save(account);
     }
 
-    private User createUser(UserRegistrationRequest request, Account account) {
-        User user = User.builder()
+    private Customer createCustomer(CustomerRegistrationRequest request, Account account) {
+        Customer customer = Customer.builder()
                 .account(account)
                 .identityNo(request.getIdentityNo())
                 .address(request.getAddress())
                 .dateOfBirth(convertToDate(request.getDateOfBirth()))
                 .build();
-        return userRepository.save(user);
+        return customerRepository.save(customer);
     }
 
     private Account createAccount(BusCompanyRegistrationRequest request) {
-        Role role = getRoleByName(PredenfinedRole.BUS_COMPANY_ROLE);
+        Role role = getRoleByName(PredefinedRole.BUS_COMPANY_ROLE);
         Account account = Account.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -123,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void generateAndSendVerificationToken(String email) {
         Account account = accountRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException("Account not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Không tìm thấy tài khoản", HttpStatus.NOT_FOUND));
 
         String token = UUID.randomUUID().toString();
         EmailVerificationToken verificationToken = new EmailVerificationToken(token, account);
@@ -135,10 +152,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void verifyEmail(String token) {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new AppException("Token not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Link xác nhận không hợp lệ", HttpStatus.NOT_FOUND));
 
         if (verificationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            // Token expired, create and send a new token
+            // Token đã hết hạn, tạo và gửi một token mới
             Account account = verificationToken.getAccount();
             String newToken = UUID.randomUUID().toString();
             EmailVerificationToken newVerificationToken = new EmailVerificationToken(newToken, account);
@@ -147,10 +164,10 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendVerificationEmail(account.getEmail(), newToken);
             emailVerificationTokenRepository.delete(verificationToken);
 
-            throw new AppException("Token expired. A new verification email has been sent.", HttpStatus.GONE);
+            throw new AppException("Link đã hết hạn. Một email xác nhận mới đã được gửi.", HttpStatus.GONE);
         }
 
-        // Token is valid, enable the account
+        // Token hợp lệ, kích hoạt tài khoản
         Account account = verificationToken.getAccount();
         account.setEnabled(true);
         accountRepository.save(account);
@@ -158,37 +175,37 @@ public class AuthServiceImpl implements AuthService {
         emailVerificationTokenRepository.delete(verificationToken);
     }
 
-    private void validateUserRequest(UserRegistrationRequest request) {
+    private void validateUserRequest(CustomerRegistrationRequest request) {
         if (accountRepository.existsByEmail(request.getEmail())) {
-            throw new AppException("Email already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("Email đã tồn tại", HttpStatus.BAD_REQUEST);
         }
 
         if (accountRepository.existsByPhone(request.getPhone())) {
-            throw new AppException("Phone number already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("Số điện thoại đã tồn tại", HttpStatus.BAD_REQUEST);
         }
 
-        if (userRepository.existsByIdentityNo(request.getIdentityNo())) {
-            throw new AppException("Identity number already exists", HttpStatus.BAD_REQUEST);
+        if (customerRepository.existsByIdentityNo(request.getIdentityNo())) {
+            throw new AppException("Số CCCD đã tồn tại", HttpStatus.BAD_REQUEST);
         }
     }
 
     private void validateCompanyRequest(BusCompanyRegistrationRequest request) {
         if (accountRepository.existsByEmail(request.getEmail())) {
-            throw new AppException("Email already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("Email đã tồn tại", HttpStatus.BAD_REQUEST);
         }
 
         if (accountRepository.existsByPhone(request.getPhone())) {
-            throw new AppException("Phone number already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("Số điện thoại đã tồn tại", HttpStatus.BAD_REQUEST);
         }
 
         if (busCompanyRepository.existsByBusinessLicense(request.getBusinessLicense())) {
-            throw new AppException("Business license already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("Giấy phép kinh doanh đã tồn tại", HttpStatus.BAD_REQUEST);
         }
     }
 
     private Role getRoleByName(String roleName) {
         return roleRepository.findByRoleName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() -> new RuntimeException("Round not found"));
     }
 
     private Date convertToDate(String dateString) {
