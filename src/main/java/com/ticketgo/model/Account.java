@@ -41,8 +41,10 @@ public class Account implements UserDetails {
     @Column(name = "company_name", length = 100)
     private String companyName;
 
-    @Column(nullable = false, unique = true, length = 10)
+    @Column(nullable = false, length = 10)
     private String phone;
+
+    private String picture;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt = LocalDateTime.now();

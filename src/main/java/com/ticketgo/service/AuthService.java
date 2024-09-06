@@ -10,8 +10,13 @@ public interface AuthService {
 
     Integer registerNewCustomer(CustomerRegistrationRequest request);
     Integer registerNewBusCompany(BusCompanyRegistrationRequest request);
+
     void generateAndSendVerificationToken(String email);
     void verifyEmail(String token);
-    LoginResponse authenticate(LoginRequest request);
+
     RefreshTokenResponse refreshToken(String token);
+
+    LoginResponse authenticate(LoginRequest request);
+    LoginResponse GoogleLogin(String accessToken);
+    LoginResponse FacebookLogin(String accessToken);
 }

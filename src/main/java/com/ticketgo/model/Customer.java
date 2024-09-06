@@ -21,9 +21,6 @@ public class Customer {
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
-    @Column(name = "identity_no", nullable = false, unique = true, length = 12)
-    private String identityNo;
-
     @Column(name = "date_of_birth")
     private Date dateOfBirth;
 

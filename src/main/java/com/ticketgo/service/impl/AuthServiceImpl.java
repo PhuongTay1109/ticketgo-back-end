@@ -4,6 +4,8 @@ import com.ticketgo.contant.PredefinedRole;
 import com.ticketgo.dto.request.BusCompanyRegistrationRequest;
 import com.ticketgo.dto.request.LoginRequest;
 import com.ticketgo.dto.request.CustomerRegistrationRequest;
+import com.ticketgo.dto.response.GoogleUserInfoResponse;
+import com.ticketgo.dto.response.FacebookUserInfoResponse;
 import com.ticketgo.dto.response.LoginResponse;
 import com.ticketgo.dto.response.RefreshTokenResponse;
 import com.ticketgo.exception.AppException;
@@ -14,10 +16,11 @@ import com.ticketgo.service.AuthService;
 import com.ticketgo.service.EmailService;
 import com.ticketgo.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.sql.Date;
 import java.time.LocalDateTime;
@@ -54,6 +57,113 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
+    }
+
+    @Override
+    public LoginResponse GoogleLogin(String accessToken) {
+        final String googleUserInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> httpEntity = new HttpEntity<>(headers);
+        ResponseEntity<GoogleUserInfoResponse> response = restTemplate.exchange(googleUserInfoEndpoint, HttpMethod.GET,
+                httpEntity, GoogleUserInfoResponse.class);
+
+        if (response.getStatusCode() != HttpStatus.OK) {
+            throw new AppException("Token Google không hợp lệ", HttpStatus.UNAUTHORIZED);
+        }
+
+        GoogleUserInfoResponse userResponse = response.getBody();
+
+        if (accountRepository.existsByEmail(userResponse.getEmail())) {
+            Account account = accountRepository.findByEmail(userResponse.getEmail())
+                    .orElseThrow(() -> new AppException("Không tìm thấy tài khoản", HttpStatus.NOT_FOUND));
+
+            if (!account.isEnabled()) {
+                throw new AppException("Tài khoản của bạn chưa được kích hoạt", HttpStatus.UNAUTHORIZED);
+            }
+
+            return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
+        } else {
+            Account account = createGoogleCustomerAccount(userResponse);
+            createCustomerForSocialLogin(account);
+
+            return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
+        }
+    }
+
+    @Override
+    public LoginResponse FacebookLogin(String accessToken) {
+        final String facebookUserInfoEndpoint = "https://graph.facebook.com/me?fields=email,name";
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> httpEntity = new HttpEntity<>(headers);
+        ResponseEntity<FacebookUserInfoResponse> response = restTemplate.exchange(facebookUserInfoEndpoint, HttpMethod.GET,
+                httpEntity, FacebookUserInfoResponse.class);
+
+        if (response.getStatusCode() != HttpStatus.OK) {
+            throw new AppException("Token Facebook không hợp lệ", HttpStatus.UNAUTHORIZED);
+        }
+
+        FacebookUserInfoResponse userResponse = response.getBody();
+
+        if (accountRepository.existsByEmail(userResponse.getEmail())) {
+            Account account = accountRepository.findByEmail(userResponse.getEmail())
+                    .orElseThrow(() -> new AppException("Không tìm thấy tài khoản", HttpStatus.NOT_FOUND));
+
+            if (!account.isEnabled()) {
+                account.setEnabled(true);
+            }
+
+            return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
+        } else {
+            Account account = createFacebookCustomerAccount(userResponse);
+            createCustomerForSocialLogin(account);
+
+            return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
+        }
+    }
+
+    private Account createFacebookCustomerAccount(FacebookUserInfoResponse userResponse) {
+        Role role = getRoleByName(PredefinedRole.CUSTOMER_ROLE);
+        Account account = Account.builder()
+                .email(userResponse.getEmail())
+                .password("")
+                .role(role)
+                .enabled(true)
+                .fullName(userResponse.getLastName() + userResponse.getLastName())
+                .picture(userResponse.getPictureUrl())
+                .build();
+        return accountRepository.save(account);
+    }
+
+
+    private Account createGoogleCustomerAccount(GoogleUserInfoResponse userResponse) {
+        Role role = getRoleByName(PredefinedRole.CUSTOMER_ROLE);
+        Account account = Account.builder()
+                .email(userResponse.getEmail())
+                .password("")
+                .role(role)
+                .enabled(true)
+                .fullName(userResponse.getName())
+                .picture(userResponse.getPicture())
+                .build();
+        return accountRepository.save(account);
+    }
+
+    private void createCustomerForSocialLogin(Account account) {
+        Customer customer = Customer.builder()
+                .account(account)
+                .address("")
+                .build();
+        customerRepository.save(customer);
     }
 
     @Override
@@ -107,7 +217,6 @@ public class AuthServiceImpl implements AuthService {
     private Customer createCustomer(CustomerRegistrationRequest request, Account account) {
         Customer customer = Customer.builder()
                 .account(account)
-                .identityNo(request.getIdentityNo())
                 .address(request.getAddress())
                 .dateOfBirth(convertToDate(request.getDateOfBirth()))
                 .build();
@@ -179,23 +288,11 @@ public class AuthServiceImpl implements AuthService {
         if (accountRepository.existsByEmail(request.getEmail())) {
             throw new AppException("Email đã tồn tại", HttpStatus.BAD_REQUEST);
         }
-
-        if (accountRepository.existsByPhone(request.getPhone())) {
-            throw new AppException("Số điện thoại đã tồn tại", HttpStatus.BAD_REQUEST);
-        }
-
-        if (customerRepository.existsByIdentityNo(request.getIdentityNo())) {
-            throw new AppException("Số CCCD đã tồn tại", HttpStatus.BAD_REQUEST);
-        }
     }
 
     private void validateCompanyRequest(BusCompanyRegistrationRequest request) {
         if (accountRepository.existsByEmail(request.getEmail())) {
             throw new AppException("Email đã tồn tại", HttpStatus.BAD_REQUEST);
-        }
-
-        if (accountRepository.existsByPhone(request.getPhone())) {
-            throw new AppException("Số điện thoại đã tồn tại", HttpStatus.BAD_REQUEST);
         }
 
         if (busCompanyRepository.existsByBusinessLicense(request.getBusinessLicense())) {
@@ -205,7 +302,7 @@ public class AuthServiceImpl implements AuthService {
 
     private Role getRoleByName(String roleName) {
         return roleRepository.findByRoleName(roleName)
-                .orElseThrow(() -> new RuntimeException("Round not found"));
+                .orElseThrow(() -> new RuntimeException("Role not found"));
     }
 
     private Date convertToDate(String dateString) {
