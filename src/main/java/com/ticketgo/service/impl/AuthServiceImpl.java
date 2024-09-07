@@ -41,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private final AccountService accountService;
 
     @Override
-    public LoginResponse authenticate(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         String email = request.getEmail();
         String password = request.getPassword();
 
@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponse GoogleLogin(String accessToken) {
+    public LoginResponse googleLogin(String accessToken) {
         final String googleUserInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
         RestTemplate restTemplate = new RestTemplate();
 
@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponse FacebookLogin(String accessToken) {
+    public LoginResponse facebookLogin(String accessToken) {
         final String facebookUserInfoEndpoint = "https://graph.facebook.com/me?fields=email,name";
         RestTemplate restTemplate = new RestTemplate();
 

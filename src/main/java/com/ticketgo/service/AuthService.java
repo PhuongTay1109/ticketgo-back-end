@@ -16,7 +16,7 @@ public interface AuthService {
 
     RefreshTokenResponse refreshToken(String token);
 
-    LoginResponse authenticate(LoginRequest request);
-    LoginResponse GoogleLogin(String accessToken);
-    LoginResponse FacebookLogin(String accessToken);
+    LoginResponse login(LoginRequest request);
+    LoginResponse googleLogin(String accessToken);
+    LoginResponse facebookLogin(String accessToken);
 }

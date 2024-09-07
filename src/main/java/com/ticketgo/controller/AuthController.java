@@ -1,9 +1,6 @@
 package com.ticketgo.controller;
 
-import com.ticketgo.dto.request.BusCompanyRegistrationRequest;
-import com.ticketgo.dto.request.LoginRequest;
-import com.ticketgo.dto.request.CustomerRegistrationRequest;
-import com.ticketgo.dto.request.RefreshTokenRequest;
+import com.ticketgo.dto.request.*;
 import com.ticketgo.dto.response.ApiResponse;
 import com.ticketgo.dto.response.LoginResponse;
 import com.ticketgo.dto.response.RefreshTokenResponse;
@@ -45,7 +42,19 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse loginResponse = authService.authenticate(request);
+        LoginResponse loginResponse = authService.login(request);
+        return ApiResponseUtil.createSuccessResponse(loginResponse,"Login successfully", HttpStatus.OK);
+    }
+
+    @PostMapping("/google-login")
+    public ResponseEntity<ApiResponse> googleLogin(@Valid @RequestBody OAuthTokenRequest request) {
+        LoginResponse loginResponse = authService.googleLogin(request.getToken());
+        return ApiResponseUtil.createSuccessResponse(loginResponse,"Login successfully", HttpStatus.OK);
+    }
+
+    @PostMapping("facebook-login")
+    public ResponseEntity<ApiResponse> facebookLogin(@Valid @RequestBody OAuthTokenRequest request) {
+        LoginResponse loginResponse = authService.facebookLogin(request.getToken());
         return ApiResponseUtil.createSuccessResponse(loginResponse,"Login successfully", HttpStatus.OK);
     }
 
