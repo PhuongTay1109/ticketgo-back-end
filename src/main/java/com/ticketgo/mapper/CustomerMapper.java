@@ -11,7 +11,6 @@ public class CustomerMapper {
                 .fullName(customer.getAccount().getFullName())
                 .phone(customer.getAccount().getPhone())
                 .dateOfBirth(customer.getDateOfBirth().toString())
-                .identityNo(customer.getIdentityNo())
                 .address(customer.getAddress())
                 .build();
     }
