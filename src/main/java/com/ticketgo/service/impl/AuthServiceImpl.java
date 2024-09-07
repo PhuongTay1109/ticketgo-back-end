@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException("Tên đăng nhập hoặc mật khẩu không hợp lệ", HttpStatus.UNAUTHORIZED);
         }
 
-        if(!account.isEnabled()) {
+        if(!account.isIsEnabled()) {
             throw new AppException("Tài khoản của bạn chưa được kích hoạt. Hãy kiểm tra email để kích hoạt tài khoản.", HttpStatus.UNAUTHORIZED);
         }
 
@@ -82,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
             Account account = accountRepository.findByEmail(userResponse.getEmail())
                     .orElseThrow(() -> new AppException("Không tìm thấy tài khoản", HttpStatus.NOT_FOUND));
 
-            if (!account.isEnabled()) {
+            if (!account.isIsEnabled()) {
                 throw new AppException("Tài khoản của bạn chưa được kích hoạt", HttpStatus.UNAUTHORIZED);
             }
 
@@ -118,8 +118,8 @@ public class AuthServiceImpl implements AuthService {
             Account account = accountRepository.findByEmail(userResponse.getEmail())
                     .orElseThrow(() -> new AppException("Không tìm thấy tài khoản", HttpStatus.NOT_FOUND));
 
-            if (!account.isEnabled()) {
-                account.setEnabled(true);
+            if (!account.isIsEnabled()) {
+                account.setIsEnabled(true);
             }
 
             return new LoginResponse(jwtUtil.generateAccessToken(account), jwtUtil.generateRefreshToken(account));
@@ -137,7 +137,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(userResponse.getEmail())
                 .password("")
                 .role(role)
-                .enabled(true)
+                .isEnabled(true)
                 .fullName(userResponse.getLastName() + userResponse.getLastName())
                 .picture(userResponse.getPictureUrl())
                 .build();
@@ -151,7 +151,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(userResponse.getEmail())
                 .password("")
                 .role(role)
-                .enabled(true)
+                .isEnabled(true)
                 .fullName(userResponse.getName())
                 .picture(userResponse.getPicture())
                 .build();
@@ -209,7 +209,7 @@ public class AuthServiceImpl implements AuthService {
                 .role(role)
                 .phone(request.getPhone())
                 .fullName(request.getFullName())
-                .enabled(false)
+                .isEnabled(false)
                 .build();
         return accountRepository.save(account);
     }
@@ -229,7 +229,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(role)
-                .enabled(false)
+                .isEnabled(false)
                 .companyName(request.getCompanyName())
                 .phone(request.getPhone())
                 .build();
@@ -278,7 +278,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Token hợp lệ, kích hoạt tài khoản
         Account account = verificationToken.getAccount();
-        account.setEnabled(true);
+        account.setIsEnabled(true);
         accountRepository.save(account);
 
         emailVerificationTokenRepository.delete(verificationToken);

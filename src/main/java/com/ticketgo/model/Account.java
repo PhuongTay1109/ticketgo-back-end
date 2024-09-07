@@ -30,7 +30,10 @@ public class Account implements UserDetails {
     private Role role;
 
     @Column(nullable = false)
-    private Boolean enabled = false;
+    private Boolean isEnabled = false;
+
+    @Column
+    private Boolean isLocked = false;
 
     @Column(nullable = false, unique = true, length = 100)
     private String email;
@@ -68,7 +71,7 @@ public class Account implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return this.isLocked;
     }
 
     @Override
@@ -76,8 +79,7 @@ public class Account implements UserDetails {
         return true;
     }
 
-    @Override
-    public boolean isEnabled() {
-        return this.enabled;
+    public boolean isIsEnabled() {
+        return this.isEnabled;
     }
 }
